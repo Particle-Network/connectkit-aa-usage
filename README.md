@@ -16,10 +16,6 @@
 
 This app allows you to log in using social logins and interact with various testnets by displaying account information and sending a gasless transfer transaction to an address you can input in the UI.
 
-> The Next application is within the `connectkit-aa-usage` directory.
-
-> 🛠️ Try the demo: [Particle Auth Next.js AA demo](https://particle-auth-nextjs-aa.vercel.app/)
-
 Built using `create @particle-network/connectkit`
 
 ```sh
