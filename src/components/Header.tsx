@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Particle Connect 2.0",
   description:
-    "Leverage Particle Connect 2.0 for social and native Web3 logins",
+    "Leverage Particle Connect 2.0 for social and native Web3 logins with Account Abstraction",
   icons: {
     icon: "/favicon.ico",
   },
@@ -21,7 +21,7 @@ const Header: React.FC = () => {
   };
 
   const subHeading =
-    "Leverage Particle Connect 2.0 for social and native Web3 logins";
+    "Leverage Particle Connect 2.0 for social and native Web3 logins with Account Abstraction";
 
   return (
     <>

@@ -72,13 +72,7 @@ Particle Network natively supports and facilitates the end-to-end utilization of
 
 ### Clone this repository
 ```
-git clone https://github.com/soos3d/particle-auth-nextjs-aa
-```
-
-### Move into the app directory
-
-```sh
-cd connectkit-aa-usage
+git clone https://github.com/Particle-Network/connectkit-aa-usage
 ```
 
 ### Install dependencies
