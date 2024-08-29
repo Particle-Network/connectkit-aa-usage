@@ -9,8 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@particle-network/aa": "^1.5.3",
-    "@particle-network/connectkit": "^2.0.0",
+    "@particle-network/aa": "^2.0.0",
+    "@particle-network/connectkit": "^2.0.3",
     "ethers": "^6.13.2",
     "next": "14.2.5",
     "react": "^18",

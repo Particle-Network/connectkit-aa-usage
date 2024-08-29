@@ -15,15 +15,13 @@ import { aa } from "@particle-network/connectkit/aa";
 import {
   sepolia,
   baseSepolia,
-  arbitrum,
-  base,
-  mainnet,
-  polygon,
   polygonAmoy,
-  avalanche,
   avalancheFuji,
 } from "@particle-network/connectkit/chains";
-import { evmWalletConnectors } from "@particle-network/connectkit/evm";
+import {
+  evmWalletConnectors,
+  passkeySmartWallet,
+} from "@particle-network/connectkit/evm";
 // evm end
 
 const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
@@ -46,6 +44,8 @@ const config = createConfig({
   clientKey,
   appId,
   appearance: {
+    //  optional, sort wallet connectors
+    connectorsOrder: ["passkey", "social", "wallet"],
     recommendedWallets: [
       { walletId: "metaMask", label: "Recommended" },
       { walletId: "coinbaseWallet", label: "Popular" },
@@ -54,7 +54,7 @@ const config = createConfig({
   },
   walletConnectors: [
     authWalletConnectors({
-      authTypes: ["email", "google", "apple", "twitter", "github"], // Optional, restricts the types of social logins supported
+      authTypes: ["google", "apple", "twitter", "github"], // Optional, restricts the types of social logins supported
     }),
     // evm start
     evmWalletConnectors({
@@ -69,7 +69,10 @@ const config = createConfig({
         url: typeof window !== "undefined" ? window.location.origin : "",
       },
       walletConnectProjectId: walletConnectProjectId,
+      connectorFns: [passkeySmartWallet()],
+      multiInjectedProviderDiscovery: false,
     }),
+
     // evm end
   ],
   plugins: [
@@ -81,6 +84,7 @@ const config = createConfig({
     // embedded wallet end
 
     // aa config start
+    // With Passkey auth use Biconomy or Coinbase
     aa({
       name: "BICONOMY",
       version: "2.0.0",
