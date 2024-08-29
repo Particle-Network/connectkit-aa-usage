@@ -28,6 +28,8 @@ yarn create @particle-network/connectkit
 
 Follow the instructions:
 
+> **Note:** This implementation demonstrates Passkey Authentication. You must use a Biconomy or Coinbase smart account. For a complete list of smart accounts, refer to the [AA SDK](https://developers.particle.network/api-reference/aa/sdks/desktop/web#initialization) page.
+
 ```sh
 🤩 Welcome to Particle Network!
 
