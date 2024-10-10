@@ -12,12 +12,7 @@ import { EntryPosition, wallet } from "@particle-network/connectkit/wallet";
 import { aa } from "@particle-network/connectkit/aa";
 // aa end
 // evm start
-import {
-  sepolia,
-  baseSepolia,
-  polygonAmoy,
-  avalancheFuji,
-} from "@particle-network/connectkit/chains";
+import { base, baseSepolia } from "@particle-network/connectkit/chains";
 import {
   evmWalletConnectors,
   passkeySmartWallet,
@@ -33,11 +28,6 @@ const walletConnectProjectId = process.env
 if (!projectId || !clientKey || !appId) {
   throw new Error("Please configure the Particle project in .env first!");
 }
-
-const supportChains: Chain[] = [];
-// evm start
-supportChains.push(sepolia, baseSepolia, avalancheFuji, polygonAmoy);
-// evm end
 
 const config = createConfig({
   projectId,
@@ -86,12 +76,12 @@ const config = createConfig({
     // aa config start
     // With Passkey auth use Biconomy or Coinbase
     aa({
-      name: "BICONOMY",
-      version: "2.0.0",
+      name: "COINBASE",
+      version: "1.0.0",
     }),
     // aa config end
   ],
-  chains: supportChains as unknown as readonly [Chain, ...Chain[]],
+  chains: [base, baseSepolia],
 });
 
 // Wrap your application with this component.

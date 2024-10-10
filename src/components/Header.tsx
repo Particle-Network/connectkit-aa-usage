@@ -25,21 +25,27 @@ const Header: React.FC = () => {
 
   return (
     <>
-      <h1 className="text-4xl mt-4 font-bold mb-12 text-center flex items-center justify-center">
+      {/* Main Heading */}
+      <h1 className="text-3xl md:text-4xl mt-4 font-bold mb-8 text-center flex flex-col md:flex-row items-center justify-center gap-4">
         {mainHeading.text}
         <a
           href={mainHeading.linkHref}
-          className="text-purple-400 hover:text-purple-300 transition duration-300 ml-2"
+          className="text-purple-400 hover:text-purple-300 transition duration-300"
         >
           <Image
             src={mainHeading.linkImageSrc}
             alt={mainHeading.linkImageAlt}
             width={mainHeading.linkImageWidth}
             height={mainHeading.linkImageHeight}
+            className="mx-auto md:mx-0"
           />
         </a>
       </h1>
-      <h2 className="text-xl font-bold mb-6">{subHeading}</h2>
+
+      {/* Subheading */}
+      <h2 className="text-lg md:text-xl font-bold mb-6 text-center px-4 md:px-0">
+        {subHeading}
+      </h2>
     </>
   );
 };

@@ -72,6 +72,7 @@ export default function Home() {
         setBalance(formatBalance(balanceInEther));
       } else {
         console.error("Balance response is undefined");
+        setBalance("0.0");
       }
     } catch (error) {
       console.error("Error fetching balance:", error);
@@ -173,20 +174,21 @@ export default function Home() {
   };
 
   return (
-    <div className="container min-h-screen flex flex-col justify-center items-center mx-auto gap-4">
-      <div className="absolute top-6 right-6">
+    <div className="container min-h-screen flex flex-col justify-center items-center mx-auto gap-4 px-4 md:px-8">
+      <Header />
+      <div className="w-full flex justify-center mt-4">
         <ConnectButton label="Click to login" />
       </div>
-      <Header />
-      <div className="bg-gray-800 p-4 rounded-lg shadow-lg max-w-sm mx-auto mb-4">
-        <h2 className="text-md font-semibold text-white">
+      <div className="w-full text-center mb-4 px-4"></div>
+      <div className="bg-gray-800 p-4 rounded-lg shadow-lg w-full sm:w-3/4 md:w-1/2 mb-4">
+        <h2 className="text-md font-semibold text-white text-center">
           Status: {connectionStatus}
         </h2>
       </div>
       {isConnected ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="border border-purple-500 p-6 rounded-lg">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 w-full">
+            <div className="border border-purple-500 p-6 rounded-lg w-full">
               {userInfo && (
                 <div className="flex items-center">
                   <h2 className="text-lg font-semibold text-white mr-2">
@@ -231,8 +233,7 @@ export default function Home() {
                 Buy Crypto with Fiat
               </button>
             </div>
-
-            <div className="border border-purple-500 p-6 rounded-lg">
+            <div className="border border-purple-500 p-6 rounded-lg w-full mt-4 md:mt-0">
               <h2 className="text-2xl font-bold mb-2 text-white">
                 Send a gasless transaction
               </h2>
@@ -244,26 +245,28 @@ export default function Home() {
                 placeholder="Recipient Address"
                 value={recipientAddress}
                 onChange={(e) => setRecipientAddress(e.target.value)}
-                className="mt-4 p-2 w-full rounded border border-gray-700 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-purple-400"
+                className="mt-4 p-3 w-full rounded border border-gray-700 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-purple-400"
               />
-              <button
-                className="mr-4 mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105 shadow-lg"
-                onClick={executeTxNative}
-                disabled={!recipientAddress || isSending}
-              >
-                {isSending
-                  ? "Sending..."
-                  : `Send 0.01 ${chain?.nativeCurrency.symbol} Particle provider`}
-              </button>
-              <button
-                className="mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105 shadow-lg"
-                onClick={executeTxEthers}
-                disabled={!recipientAddress || isSending}
-              >
-                {isSending
-                  ? "Sending..."
-                  : `Send 0.01 ${chain?.nativeCurrency.symbol} ethers`}
-              </button>
+              <div className="flex flex-col gap-4 mt-4">
+                <button
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105 shadow-lg"
+                  onClick={executeTxNative}
+                  disabled={!recipientAddress || isSending}
+                >
+                  {isSending
+                    ? "Sending..."
+                    : `Send 0.01 ${chain?.nativeCurrency.symbol} Particle provider`}
+                </button>
+                <button
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105 shadow-lg"
+                  onClick={executeTxEthers}
+                  disabled={!recipientAddress || isSending}
+                >
+                  {isSending
+                    ? "Sending..."
+                    : `Send 0.01 ${chain?.nativeCurrency.symbol} ethers`}
+                </button>
+              </div>
               {transactionHash && (
                 <TxNotification
                   hash={transactionHash}
