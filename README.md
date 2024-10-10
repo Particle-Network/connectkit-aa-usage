@@ -7,14 +7,23 @@
   </h3>
 </div>
 
-# Particle Connect, Account Abstraction SDK, Next.js, & ethers V6
+# Particle Connect Authentication via Passkey with Coinbase smart account
 
-⚡️ Basic demo application using `@particle-network/connectkit` and `@particle-network/aa` to initiate social login and send transactions via an account abstraction smart account. 
+⚡️ Basic demo application using `@particle-network/connectkit` and `@particle-network/aa` to showcase how to leverage a Coinbase smart account with Passkey for onboarding and signing.
 
-> Note that Account Abstraction is included wihint the new `connectkit` package. `@particle-network/aa` is required when using an EIP 1193 provider like ehter.js.
+> Note that Account Abstraction is included within the new `connectkit` package. `@particle-network/aa` is required when using an EIP 1193 provider like ethers.js.
 > This demo showcases both options.
 
-This app allows you to log in using social logins and interact with various testnets by displaying account information and sending a gasless transfer transaction to an address you can input in the UI.
+This app lets you log in using Passkey, view account information, and send a gasless transfer to an address entered in the UI.
+
+**What is Passkey?**  
+Passkey is a passwordless authentication method that enables users to log in securely using biometric data, device PINs, or other forms of strong authentication, providing a simpler and more secure onboarding experience.
+
+Learn more about integrating [Authentication via Passkey](https://developers.particle.network/api-reference/connect/desktop/web#authentication-via-passkey) on the Particle docs.
+
+> The Next application is within the `connectkit-aa-usage` directory.
+
+> 🛠️ Try the demo: [Particle Auth Next.js AA demo](https://particle-auth-nextjs-aa.vercel.app/)
 
 Built using `create @particle-network/connectkit`
 
@@ -27,8 +36,6 @@ yarn create @particle-network/connectkit
 ```
 
 Follow the instructions:
-
-> **Note:** This implementation demonstrates Passkey Authentication. You must use a Biconomy or Coinbase smart account. For a complete list of smart accounts, refer to the [AA SDK](https://developers.particle.network/api-reference/aa/sdks/desktop/web#initialization) page.
 
 ```sh
 🤩 Welcome to Particle Network!
@@ -70,7 +77,13 @@ Particle Network natively supports and facilitates the end-to-end utilization of
 
 ### Clone this repository
 ```
-git clone https://github.com/Particle-Network/connectkit-aa-usage
+git clone https://github.com/soos3d/particle-auth-nextjs-aa
+```
+
+### Move into the app directory
+
+```sh
+cd connectkit-aa-usage
 ```
 
 ### Install dependencies
@@ -135,8 +148,8 @@ You can configure the smart account using the `aa` plugin located in `src/compon
 plugins: [
   // Smart Account (AA) configuration
   aa({
-    name: "BICONOMY",
-    version: "2.0.0",
+    name: "COINBASE",
+    version: "1.0.0",
   }),
 ],
 ```
