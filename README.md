@@ -23,8 +23,6 @@ Learn more about integrating [Authentication via Passkey](https://developers.par
 
 > The Next application is within the `connectkit-aa-usage` directory.
 
-> 🛠️ Try the demo: [Particle Auth Next.js AA demo](https://particle-auth-nextjs-aa.vercel.app/)
-
 Built using `create @particle-network/connectkit`
 
 ```sh
