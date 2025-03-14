@@ -11,7 +11,7 @@
   "dependencies": {
     "@next/swc-darwin-arm64": "^14.2.13",
     "@particle-network/aa": "^2.0.0",
-    "@particle-network/connectkit": "^2.0.9",
+    "@particle-network/connectkit": "^2.0.15",
     "ethers": "^6.13.2",
     "next": "14.2.5",
     "react": "^18",

@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import LinksGrid from "@/components/Links";
 import Header from "@/components/Header";
 import { ToastContainer } from "react-toastify";
@@ -61,23 +61,26 @@ export default function Home() {
    * Fetches the balance of a given address.
    * @param {string} address - The address to fetch the balance for.
    */
-  const fetchBalance = async (address: string) => {
-    try {
-      const balanceResponse = await publicClient?.getBalance({
-        address: address as `0x${string}`,
-      });
+  const fetchBalance = useCallback(
+    async (address: string) => {
+      try {
+        const balanceResponse = await publicClient?.getBalance({
+          address: address as `0x${string}`,
+        });
 
-      if (balanceResponse) {
-        const balanceInEther = formatEther(balanceResponse);
-        setBalance(formatBalance(balanceInEther));
-      } else {
-        console.error("Balance response is undefined");
-        setBalance("0.0");
+        if (balanceResponse) {
+          const balanceInEther = formatEther(balanceResponse);
+          setBalance(formatBalance(balanceInEther));
+        } else {
+          console.error("Balance response is undefined");
+          setBalance("0.0");
+        }
+      } catch (error) {
+        console.error("Error fetching balance:", error);
       }
-    } catch (error) {
-      console.error("Error fetching balance:", error);
-    }
-  };
+    },
+    [publicClient]
+  );
 
   /**
    * Loads the user's account data such as address, balance, and user info.
@@ -101,7 +104,7 @@ export default function Home() {
     };
 
     loadAccountData();
-  }, [isConnected, smartAccount, getUserInfo, chainId]);
+  }, [isConnected, smartAccount, getUserInfo, chainId, fetchBalance]);
 
   /**
    * Handles the on-ramp process by opening the Particle Network Ramp in a new window.
