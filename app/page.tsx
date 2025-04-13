@@ -16,6 +16,7 @@ import {
   usePublicClient,
   useParticleAuth,
   useSmartAccount,
+  useWallets,
 } from "@particle-network/connectkit";
 
 // Eip1193 and AA Provider
@@ -24,12 +25,14 @@ import { ethers, type Eip1193Provider } from "ethers";
 import { formatEther, parseEther } from "viem";
 
 export default function Home() {
-  const { isConnected, chainId, isConnecting, isDisconnected, chain } =
+  const { isConnected, chainId, isConnecting, isDisconnected, chain, address } =
     useAccount();
   const { getUserInfo } = useParticleAuth();
   const publicClient = usePublicClient();
   const smartAccount = useSmartAccount();
+  const [primaryWallet] = useWallets();
 
+  const walletClient = primaryWallet?.getWalletClient();
   const [userAddress, setUserAddress] = useState<string>("");
   const [userInfo, setUserInfo] = useState<Record<string, any> | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
@@ -176,6 +179,23 @@ export default function Home() {
     }
   };
 
+  // Sign a message using ethers as provider
+  const signMessage = async () => {
+    const message = "Gm Particle! Signing with ethers.";
+
+    try {
+      const result = await walletClient?.signMessage({
+        message,
+        account: address as `0x${string}`,
+      });
+      alert(`Signed Message: ${result} by address ${address}.`);
+    } catch (error: any) {
+      // This is how you can display errors to the user
+      alert(`Error with code ${error.code}: ${error.message}`);
+      console.error("personal_sign", error);
+    }
+  };
+
   return (
     <div className="container min-h-screen flex flex-col justify-center items-center mx-auto gap-4 px-4 md:px-8">
       <Header />
@@ -268,6 +288,12 @@ export default function Home() {
                   {isSending
                     ? "Sending..."
                     : `Send 0.01 ${chain?.nativeCurrency.symbol} ethers`}
+                </button>
+                <button
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105 shadow-lg"
+                  onClick={signMessage}
+                >
+                  Sign a message
                 </button>
               </div>
               {transactionHash && (

@@ -12,7 +12,11 @@ import { EntryPosition, wallet } from "@particle-network/connectkit/wallet";
 import { aa } from "@particle-network/connectkit/aa";
 // aa end
 // evm start
-import { base, baseSepolia } from "@particle-network/connectkit/chains";
+import {
+  base,
+  baseSepolia,
+  defineChain,
+} from "@particle-network/connectkit/chains";
 import {
   evmWalletConnectors,
   passkeySmartWallet,
@@ -28,6 +32,29 @@ const walletConnectProjectId = process.env
 if (!projectId || !clientKey || !appId) {
   throw new Error("Please configure the Particle project in .env first!");
 }
+
+// Define Custom Chains
+const KiteAiTestnet = defineChain({
+  id: 2368,
+  name: "Kite AI Testnet",
+  nativeCurrency: {
+    decimals: 18,
+    name: "KITE",
+    symbol: "KITE",
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://rpc-testnet.gokite.ai/"],
+    },
+  },
+  blockExplorers: {
+    default: { name: "Explorer", url: "https://testnet.kitescan.ai/" },
+  },
+  testnet: true,
+  custom: {
+    icon: "https://ICON_URL",
+  },
+});
 
 const config = createConfig({
   projectId,
@@ -76,12 +103,12 @@ const config = createConfig({
     // aa config start
     // With Passkey auth use Biconomy or Coinbase
     aa({
-      name: "COINBASE",
-      version: "1.0.0",
+      name: "BICONOMY",
+      version: "2.0.0",
     }),
     // aa config end
   ],
-  chains: [base, baseSepolia],
+  chains: [base, baseSepolia, KiteAiTestnet],
 });
 
 // Wrap your application with this component.
