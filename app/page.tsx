@@ -1,15 +1,20 @@
 "use client";
+
+/**
+ * Particle Network Tutorial App
+ * Demonstrates the usage of Particle's Account Abstraction and Smart Accounts
+ * Features: Wallet connection, balance checking, gasless transactions, and message signing
+ */
+
+// React and UI Components
 import React, { useEffect, useState, useCallback } from "react";
 import LinksGrid from "@/components/Links";
 import Header from "@/components/Header";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
-// Utilities
-import { formatBalance, truncateAddress, copyToClipboard } from "@/utils/utils";
 import TxNotification from "@/components/TxNotification";
 
-// Particle imports
+// Particle Network SDK
 import {
   ConnectButton,
   useAccount,
@@ -18,38 +23,32 @@ import {
   useSmartAccount,
   useWallets,
 } from "@particle-network/connectkit";
+import { AAWrapProvider, SendTransactionMode } from "@particle-network/aa"; // Only when using EIP1193Provider
 
-// Eip1193 and AA Provider
-import { AAWrapProvider, SendTransactionMode } from "@particle-network/aa"; // Only needed with Eip1193 provider
+// Blockchain Utilities
 import { ethers, type Eip1193Provider } from "ethers";
-import { formatEther, parseEther } from "viem";
+import { formatEther, parseEther, verifyMessage } from "viem";
+import { formatBalance, truncateAddress, copyToClipboard } from "@/utils/utils";
 
 export default function Home() {
-  const { isConnected, chainId, isConnecting, isDisconnected, chain, address } =
-    useAccount();
+  // Particle Network Hooks
+  const { isConnected, chainId, chain, address } = useAccount(); // address here is from the EOA (to sign messages in this case)
   const { getUserInfo } = useParticleAuth();
   const publicClient = usePublicClient();
   const smartAccount = useSmartAccount();
   const [primaryWallet] = useWallets();
 
-  const walletClient = primaryWallet?.getWalletClient();
+  // Wallet State
   const [userAddress, setUserAddress] = useState<string>("");
   const [userInfo, setUserInfo] = useState<Record<string, any> | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
+
+  // Transaction State
   const [recipientAddress, setRecipientAddress] = useState<string>("");
   const [isSending, setIsSending] = useState<boolean>(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
 
-  // Connection status message based on the account's connection state
-  const connectionStatus = isConnecting
-    ? "Connecting..."
-    : isConnected
-    ? "Connected"
-    : isDisconnected
-    ? "Disconnected"
-    : "Unknown";
-
-  // Init custom provider with gasless transaction mode
+  // Initialize ethers provider with gasless transaction mode
   const customProvider = smartAccount
     ? new ethers.BrowserProvider(
         new AAWrapProvider(
@@ -60,47 +59,57 @@ export default function Home() {
       )
     : null;
 
+  // Get wallet client for signing messages
+  // This is basically the EOA associated with the smart account
+  const walletClient = primaryWallet?.getWalletClient();
+
   /**
-   * Fetches the balance of a given address.
-   * @param {string} address - The address to fetch the balance for.
+   * Fetches the native token balance for a given address
+   * @param {string} targetAddress - The address to fetch the balance for
    */
   const fetchBalance = useCallback(
-    async (address: string) => {
+    async (targetAddress: string) => {
       try {
         const balanceResponse = await publicClient?.getBalance({
-          address: address as `0x${string}`,
+          address: targetAddress as `0x${string}`,
         });
 
         if (balanceResponse) {
           const balanceInEther = formatEther(balanceResponse);
           setBalance(formatBalance(balanceInEther));
         } else {
-          console.error("Balance response is undefined");
+          console.error("Could not fetch balance");
           setBalance("0.0");
         }
       } catch (error) {
         console.error("Error fetching balance:", error);
+        setBalance("Error");
       }
     },
     [publicClient]
   );
 
   /**
-   * Loads the user's account data such as address, balance, and user info.
+   * Load user's account data including address, balance, and profile info
    */
   useEffect(() => {
     const loadAccountData = async () => {
-      try {
-        if (isConnected && smartAccount) {
-          const address = await smartAccount.getAddress();
-          setUserAddress(address);
-          fetchBalance(address);
-        }
+      if (!isConnected || !smartAccount) {
+        setUserAddress("");
+        setBalance(null);
+        setUserInfo(null);
+        return;
+      }
 
-        if (isConnected) {
-          const info = getUserInfo();
-          setUserInfo(info);
-        }
+      try {
+        // Get smart account address
+        const accountAddress = await smartAccount.getAddress();
+        setUserAddress(accountAddress);
+        fetchBalance(accountAddress);
+
+        // Get user profile info
+        const info = getUserInfo();
+        setUserInfo(info);
       } catch (error) {
         console.error("Error loading account data:", error);
       }
@@ -110,7 +119,7 @@ export default function Home() {
   }, [isConnected, smartAccount, getUserInfo, chainId, fetchBalance]);
 
   /**
-   * Handles the on-ramp process by opening the Particle Network Ramp in a new window.
+   * Opens the Particle Network fiat on-ramp in a new window
    */
   const handleOnRamp = () => {
     const onRampUrl = `https://ramp.particle.network/?fiatCoin=USD&cryptoCoin=ETH&network=Ethereum&theme=dark&language=en`;
@@ -118,197 +127,272 @@ export default function Home() {
   };
 
   /**
-   * Sends a transaction using the native AA Particle provider with gasless mode.
+   * Sends a gasless transaction using Particle's native AA provider
    */
   const executeTxNative = async () => {
+    if (!smartAccount || !recipientAddress) return;
+
     setIsSending(true);
     try {
+      // Prepare transaction parameters
       const tx = {
-        to: recipientAddress,
+        to: recipientAddress as `0x${string}`,
         value: parseEther("0.01").toString(),
         data: "0x",
       };
 
-      // Fetch feequotes and use verifyingPaymasterGasless for a gasless transaction
-      const feeQuotesResult = await smartAccount?.getFeeQuotes(tx);
-      const { userOp, userOpHash } =
-        feeQuotesResult?.verifyingPaymasterGasless || {};
+      // Get fee quotes for gasless transaction
+      const feeQuotesResult = await smartAccount.getFeeQuotes(tx);
+      const gaslessQuote = feeQuotesResult?.verifyingPaymasterGasless;
 
-      if (userOp && userOpHash) {
-        const txHash =
-          (await smartAccount?.sendUserOperation({
-            userOp,
-            userOpHash,
-          })) || null;
-
-        setTransactionHash(txHash);
-        console.log("Transaction sent:", txHash);
-      } else {
-        console.error("User operation is undefined");
+      if (!gaslessQuote) {
+        throw new Error("Failed to get gasless fee quote");
       }
+
+      // Send the user operation
+      const hash = await smartAccount.sendUserOperation({
+        userOp: gaslessQuote.userOp,
+        userOpHash: gaslessQuote.userOpHash,
+      });
+
+      setTransactionHash(hash);
     } catch (error) {
-      console.error("Failed to send transaction:", error);
+      console.error("Error sending native transaction:", error);
     } finally {
       setIsSending(false);
     }
   };
 
   /**
-   * Sends a transaction using the ethers.js library.
-   * This transaction is gasless since the customProvider is initialized as gasless
+   * Sends a gasless transaction using ethers.js provider
    */
   const executeTxEthers = async () => {
-    if (!customProvider) return;
+    if (!customProvider || !recipientAddress) return;
 
-    const signer = await customProvider.getSigner();
     setIsSending(true);
     try {
+      const signer = await customProvider.getSigner();
       const tx = {
-        to: recipientAddress,
-        value: parseEther("0.01").toString(),
+        to: recipientAddress as `0x${string}`,
+        value: parseEther("0.01"),
       };
 
-      const txResponse = await signer.sendTransaction(tx);
-      const txReceipt = await txResponse.wait();
-
-      setTransactionHash(txReceipt?.hash || null);
+      const response = await signer.sendTransaction(tx);
+      setTransactionHash(response.hash);
     } catch (error) {
-      console.error("Failed to send transaction using ethers.js:", error);
+      console.error("Error sending ethers transaction:", error);
     } finally {
       setIsSending(false);
     }
   };
 
-  // Sign a message using ethers as provider
+  /**
+   * Signs a message using the wallet client
+   */
   const signMessage = async () => {
-    const message = "Gm Particle! Signing with ethers.";
+    if (!walletClient || !address) return;
 
     try {
-      const result = await walletClient?.signMessage({
+      const message = `Sign a message - timestamp: ${Date.now()}`;
+      const signature = await walletClient.signMessage({
         message,
         account: address as `0x${string}`,
       });
-      alert(`Signed Message: ${result} by address ${address}.`);
-    } catch (error: any) {
-      // This is how you can display errors to the user
-      alert(`Error with code ${error.code}: ${error.message}`);
-      console.error("personal_sign", error);
+
+      if (signature) {
+        // Use Viem to verify the signature
+        const validSignature = await verifyMessage({
+          address: address as `0x${string}`,
+          message,
+          signature,
+        });
+        alert(`Signature: ${signature}\nValid signature?: ${validSignature}`);
+        console.log("Valid message signature:", validSignature);
+      }
+    } catch (error) {
+      console.error("Error signing message:", error);
     }
   };
 
   return (
-    <div className="container min-h-screen flex flex-col justify-center items-center mx-auto gap-4 px-4 md:px-8">
+    <div className="min-h-screen bg-gray-900 text-white p-8">
       <Header />
       <div className="w-full flex justify-center mt-4">
-        <ConnectButton label="Click to login" />
+        <ConnectButton />
       </div>
-      <div className="w-full text-center mb-4 px-4"></div>
-      <div className="bg-gray-800 p-4 rounded-lg shadow-lg w-full sm:w-3/4 md:w-1/2 mb-4">
-        <h2 className="text-md font-semibold text-white text-center">
-          Status: {connectionStatus}
-        </h2>
-      </div>
+
       {isConnected ? (
         <>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 w-full">
-            <div className="border border-purple-500 p-6 rounded-lg w-full">
-              {userInfo && (
-                <div className="flex items-center">
-                  <h2 className="text-lg font-semibold text-white mr-2">
-                    Name: {userInfo.name || "Loading..."}
-                  </h2>
-                  {userInfo.avatar && (
-                    <img
-                      src={userInfo.avatar}
-                      alt="User Avatar"
-                      className="w-10 h-10 rounded-full"
-                    />
-                  )}
-                </div>
-              )}
-              <h2 className="text-lg font-semibold mb-2 text-white flex items-center">
-                Address:{" "}
-                <code>{truncateAddress(userAddress) || "Loading..."}</code>
-                <button
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-1 px-2 ml-2 rounded transition duration-300 ease-in-out transform hover:scale-105 shadow-lg flex items-center"
-                  onClick={() => copyToClipboard(userAddress)}
-                >
-                  📋
-                </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 max-w-6xl mx-auto">
+            {/* Account Information Card */}
+            <div className="border border-purple-500 p-6 rounded-lg bg-gray-800 shadow-xl">
+              <h2 className="text-2xl font-bold mb-4 text-purple-400">
+                Account Information
               </h2>
 
-              <h2 className="text-lg font-semibold mb-2 text-white">
-                Chain: <code>{chain?.name || "Loading..."}</code>
-              </h2>
-              <h2 className="text-lg font-semibold mb-2 text-white flex items-center">
-                Balance: {balance || "Loading..."}
-                <button
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-1 px-2 ml-2 rounded transition duration-300 ease-in-out transform hover:scale-105 shadow-lg flex items-center"
-                  onClick={() => fetchBalance(userAddress)}
-                >
-                  🔄
-                </button>
-              </h2>
+              {/* User Profile */}
+              {userInfo && (
+                <div className="mb-6 flex items-center space-x-4 bg-gray-700 p-4 rounded-lg">
+                  <img
+                    src={userInfo.avatar}
+                    alt="User Avatar"
+                    className="w-12 h-12 rounded-full border-2 border-purple-500"
+                  />
+                  <div>
+                    <h3 className="text-lg font-semibold text-purple-300">
+                      {userInfo.name}
+                    </h3>
+                    <p className="text-gray-400">
+                      Connected via {userInfo?.thirdparty_user_info.provider}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Account Details */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between bg-gray-700 p-3 rounded-lg">
+                  <span className="text-gray-400">Address</span>
+                  <div className="flex items-center">
+                    <code className="text-purple-300">
+                      {truncateAddress(userAddress) || "Loading..."}
+                    </code>
+                    <button
+                      className="ml-2 p-2 hover:bg-purple-700 rounded-full transition-colors"
+                      onClick={() => copyToClipboard(userAddress)}
+                      title="Copy Address"
+                    >
+                      📋
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between bg-gray-700 p-3 rounded-lg">
+                  <span className="text-gray-400">Network</span>
+                  <code className="text-purple-300">
+                    {chain?.name || "Loading..."}
+                  </code>
+                </div>
+
+                <div className="flex items-center justify-between bg-gray-700 p-3 rounded-lg">
+                  <span className="text-gray-400">Balance</span>
+                  <div className="flex items-center">
+                    <span className="text-purple-300">
+                      {balance || "Loading..."}
+                    </span>
+                    <button
+                      className="ml-2 p-2 hover:bg-purple-700 rounded-full transition-colors"
+                      onClick={() => fetchBalance(userAddress)}
+                      title="Refresh Balance"
+                    >
+                      🔄
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Buy Crypto Button */}
               <button
-                className="mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105 shadow-lg"
+                className="mt-6 w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg flex items-center justify-center space-x-2"
                 onClick={handleOnRamp}
               >
-                Buy Crypto with Fiat
+                <span>💳</span>
+                <span>Buy Crypto with Fiat</span>
               </button>
             </div>
-            <div className="border border-purple-500 p-6 rounded-lg w-full mt-4 md:mt-0">
-              <h2 className="text-2xl font-bold mb-2 text-white">
-                Send a gasless transaction
+
+            {/* Transaction Card */}
+            <div className="border border-purple-500 p-6 rounded-lg bg-gray-800 shadow-xl">
+              <h2 className="text-2xl font-bold mb-4 text-purple-400">
+                Gasless Transactions
               </h2>
-              <h2 className="text-lg">
-                Send 0.01 {chain?.nativeCurrency.symbol}
-              </h2>
+              <p className="text-gray-400 mb-4">
+                Send {chain?.nativeCurrency.symbol} without paying gas fees
+              </p>
+
+              {/* Transaction Form */}
               <input
                 type="text"
-                placeholder="Recipient Address"
+                placeholder="Enter recipient address (0x...)"
                 value={recipientAddress}
                 onChange={(e) => setRecipientAddress(e.target.value)}
-                className="mt-4 p-3 w-full rounded border border-gray-700 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-purple-400"
+                className="w-full p-3 rounded-lg border border-gray-600 bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
-              <div className="flex flex-col gap-4 mt-4">
+
+              {/* Action Buttons */}
+              <div className="mt-6 space-y-3">
                 <button
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105 shadow-lg"
+                  className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center space-x-2"
                   onClick={executeTxNative}
                   disabled={!recipientAddress || isSending}
                 >
-                  {isSending
-                    ? "Sending..."
-                    : `Send 0.01 ${chain?.nativeCurrency.symbol} Particle provider`}
+                  {isSending ? (
+                    <>
+                      <span className="animate-spin">⚡</span>
+                      <span>Sending Transaction...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>📤</span>
+                      <span>
+                        Send with Particle (0.01 {chain?.nativeCurrency.symbol})
+                      </span>
+                    </>
+                  )}
                 </button>
+
                 <button
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105 shadow-lg"
+                  className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center space-x-2"
                   onClick={executeTxEthers}
                   disabled={!recipientAddress || isSending}
                 >
-                  {isSending
-                    ? "Sending..."
-                    : `Send 0.01 ${chain?.nativeCurrency.symbol} ethers`}
+                  {isSending ? (
+                    <>
+                      <span className="animate-spin">⚡</span>
+                      <span>Sending Transaction...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>📤</span>
+                      <span>
+                        Send with Ethers (0.01 {chain?.nativeCurrency.symbol})
+                      </span>
+                    </>
+                  )}
                 </button>
+
                 <button
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105 shadow-lg"
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center space-x-2"
                   onClick={signMessage}
                 >
-                  Sign a message
+                  <span>✍️</span>
+                  <span>Sign Message</span>
                 </button>
               </div>
+
+              {/* Transaction Notification */}
               {transactionHash && (
-                <TxNotification
-                  hash={transactionHash}
-                  blockExplorerUrl={chain?.blockExplorers?.default.url || ""}
-                />
+                <div className="mt-4">
+                  <TxNotification
+                    hash={transactionHash}
+                    blockExplorerUrl={chain?.blockExplorers?.default.url || ""}
+                  />
+                </div>
               )}
             </div>
           </div>
-          <LinksGrid />
+
+          {/* Extra content below the cards */}
+          <div className="mt-8 max-w-6xl mx-auto">
+            <LinksGrid />
+          </div>
+
           <ToastContainer />
         </>
       ) : (
-        <LinksGrid />
+        <div className="mt-8">
+          <LinksGrid />
+        </div>
       )}
     </div>
   );

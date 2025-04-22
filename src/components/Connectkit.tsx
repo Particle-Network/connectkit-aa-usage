@@ -4,7 +4,6 @@ import React from "react";
 
 import { ConnectKitProvider, createConfig } from "@particle-network/connectkit";
 import { authWalletConnectors } from "@particle-network/connectkit/auth";
-import type { Chain } from "@particle-network/connectkit/chains";
 // embedded wallet start
 import { EntryPosition, wallet } from "@particle-network/connectkit/wallet";
 // embedded wallet end
@@ -12,11 +11,7 @@ import { EntryPosition, wallet } from "@particle-network/connectkit/wallet";
 import { aa } from "@particle-network/connectkit/aa";
 // aa end
 // evm start
-import {
-  base,
-  baseSepolia,
-  defineChain,
-} from "@particle-network/connectkit/chains";
+import { bsc, bscTestnet } from "@particle-network/connectkit/chains";
 import {
   evmWalletConnectors,
   passkeySmartWallet,
@@ -32,29 +27,6 @@ const walletConnectProjectId = process.env
 if (!projectId || !clientKey || !appId) {
   throw new Error("Please configure the Particle project in .env first!");
 }
-
-// Define Custom Chains
-const KiteAiTestnet = defineChain({
-  id: 2368,
-  name: "Kite AI Testnet",
-  nativeCurrency: {
-    decimals: 18,
-    name: "KITE",
-    symbol: "KITE",
-  },
-  rpcUrls: {
-    default: {
-      http: ["https://rpc-testnet.gokite.ai/"],
-    },
-  },
-  blockExplorers: {
-    default: { name: "Explorer", url: "https://testnet.kitescan.ai/" },
-  },
-  testnet: true,
-  custom: {
-    icon: "https://ICON_URL",
-  },
-});
 
 const config = createConfig({
   projectId,
@@ -108,7 +80,7 @@ const config = createConfig({
     }),
     // aa config end
   ],
-  chains: [base, baseSepolia, KiteAiTestnet],
+  chains: [bsc, bscTestnet],
 });
 
 // Wrap your application with this component.
